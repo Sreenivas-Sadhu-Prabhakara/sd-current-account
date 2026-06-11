@@ -1,0 +1,14 @@
+apiVersion: v2
+name: sd-current-account
+description: "BIAN Service Domain: Current Account (Fulfill pattern, Operations and Execution)"
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+keywords:
+  - bian
+  - fulfill
+annotations:
+  bian/business-area: "Operations and Execution"
+  bian/business-domain: "Account Management"
+  bian/asset-type: "Current Account Facility"
+  bian/control-record: "Current Account Facility Fulfillment Arrangement"
