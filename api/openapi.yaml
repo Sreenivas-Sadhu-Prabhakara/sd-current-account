@@ -1,182 +1,245 @@
-# Design-time API contract for this service domain — owned BY this repo
-# (contract-per-repo, Netflix-style; no central contracts repo).
-# The runtime spec served at /v3/api-docs must stay compatible with this file;
-# Phase 2 adds contract tests that enforce it.
+# API contract — owned by THIS repo (contract-per-repo). Phase 2a: real domain.
 openapi: 3.0.3
 info:
   title: "Current Account — BIAN Semantic API"
   description: >
-    BIAN Service Domain 'Current Account' (functional pattern: Fulfill,
-    business area: Operations and Execution) operating on the
+    BIAN Service Domain 'Current Account' (Fulfill) operating on the
     'Current Account Facility Fulfillment Arrangement' control record.
-  version: 0.1.0
+    Deep implementation: deposits/withdrawals with overdraft, KYC gating,
+    block/close lifecycle. All money is integer minor units.
+  version: 0.2.0
 servers:
   - url: /
-    description: direct (in-cluster)
   - url: /sd-current-account
-    description: through the platform gateway (prefix is rewritten away)
-tags:
-  - name: service-domain
-  - name: control-record
+    description: through the platform gateway
 
 paths:
   /v1/service-domain:
     get:
-      tags: [service-domain]
       operationId: getServiceDomain
       summary: Service domain metadata
       responses:
-        "200":
-          description: SD identity and BIAN classification
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ServiceDomainInfo"
+        "200": { description: SD identity and BIAN classification }
 
   /v1/current-account-facility-fulfillment-arrangement/initiate:
     post:
-      tags: [control-record]
-      operationId: initiate
-      summary: "BIAN action term: Initiate"
+      operationId: openAccount
+      summary: "Initiate — open a current account (starts PENDING_KYC)"
       requestBody:
-        required: false
+        required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/Properties"
+              type: object
+              required: [customerReference]
+              properties:
+                customerReference: { type: string }
+                currency: { type: string, pattern: "^[A-Z]{3}$", default: INR }
+                overdraftLimitMinor: { type: integer, format: int64, minimum: 0, default: 0 }
       responses:
         "201":
-          description: Control record created
+          description: Account opened (ACTIVE if KYC auto-approve is on, else PENDING_KYC)
           content:
             application/json:
-              schema:
-                $ref: "#/components/schemas/ControlRecord"
+              schema: { $ref: "#/components/schemas/Account" }
+        "400": { $ref: "#/components/responses/Invalid" }
 
   /v1/current-account-facility-fulfillment-arrangement:
     get:
-      tags: [control-record]
-      operationId: list
-      summary: "BIAN action term: Retrieve (collection)"
+      operationId: listAccounts
+      summary: Retrieve (collection)
       responses:
         "200":
-          description: All control records
+          description: All accounts
           content:
             application/json:
               schema:
                 type: array
-                items:
-                  $ref: "#/components/schemas/ControlRecord"
+                items: { $ref: "#/components/schemas/Account" }
 
-  /v1/current-account-facility-fulfillment-arrangement/{crId}/retrieve:
+  /v1/current-account-facility-fulfillment-arrangement/{accountId}/retrieve:
     get:
-      tags: [control-record]
-      operationId: retrieve
-      summary: "BIAN action term: Retrieve"
-      parameters:
-        - $ref: "#/components/parameters/CrId"
+      operationId: retrieveAccount
+      summary: Retrieve
+      parameters: [{ $ref: "#/components/parameters/AccountId" }]
       responses:
         "200":
-          description: The control record
+          description: The account
           content:
             application/json:
-              schema:
-                $ref: "#/components/schemas/ControlRecord"
-        "404":
-          description: Unknown control record id
+              schema: { $ref: "#/components/schemas/Account" }
+        "404": { $ref: "#/components/responses/NotFound" }
 
-  /v1/current-account-facility-fulfillment-arrangement/{crId}/update:
+  /v1/current-account-facility-fulfillment-arrangement/{accountId}/control:
     put:
-      tags: [control-record]
-      operationId: update
-      summary: "BIAN action term: Update"
-      parameters:
-        - $ref: "#/components/parameters/CrId"
+      operationId: controlAccount
+      summary: "Control — block | unblock | terminate (close; requires balance 0)"
+      parameters: [{ $ref: "#/components/parameters/AccountId" }]
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/Properties"
+              type: object
+              required: [action]
+              properties:
+                action: { type: string, enum: [block, unblock, terminate] }
       responses:
-        "200":
-          description: Updated control record
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ControlRecord"
-        "404":
-          description: Unknown control record id
+        "200": { description: New account state }
+        "400": { $ref: "#/components/responses/Invalid" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/RuleViolation" }
 
-  /v1/current-account-facility-fulfillment-arrangement/{crId}/control:
+  /v1/current-account-facility-fulfillment-arrangement/{accountId}/kyc-result:
     put:
-      tags: [control-record]
-      operationId: control
-      summary: "BIAN action term: Control (suspend | resume | terminate)"
-      parameters:
-        - $ref: "#/components/parameters/CrId"
+      operationId: applyKycResult
+      summary: "KYC outcome callback (from Know Your Customer SD; Kafka consumer later)"
+      parameters: [{ $ref: "#/components/parameters/AccountId" }]
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ControlAction"
+              type: object
+              required: [approved]
+              properties:
+                approved: { type: boolean }
+                reason: { type: string }
+      responses:
+        "200": { description: ACTIVE on approval, REJECTED (terminal) on rejection }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/RuleViolation" }
+
+  /v1/current-account-facility-fulfillment-arrangement/{accountId}/payments/deposit:
+    post:
+      operationId: deposit
+      summary: "Payments BQ — credit funds"
+      parameters: [{ $ref: "#/components/parameters/AccountId" }]
+      requestBody: { $ref: "#/components/requestBodies/Posting" }
+      responses:
+        "201": { $ref: "#/components/responses/Posted" }
+        "400": { $ref: "#/components/responses/Invalid" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/RuleViolation" }
+
+  /v1/current-account-facility-fulfillment-arrangement/{accountId}/payments/withdraw:
+    post:
+      operationId: withdraw
+      summary: "Payments BQ — debit funds (may draw into overdraft, never beyond)"
+      parameters: [{ $ref: "#/components/parameters/AccountId" }]
+      requestBody: { $ref: "#/components/requestBodies/Posting" }
+      responses:
+        "201": { $ref: "#/components/responses/Posted" }
+        "400": { $ref: "#/components/responses/Invalid" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/RuleViolation" }
+
+  /v1/current-account-facility-fulfillment-arrangement/{accountId}/payments/cheque-credit:
+    post:
+      operationId: chequeCredit
+      summary: "Inbound credit from Cheque Processing on cheque.cleared"
+      parameters: [{ $ref: "#/components/parameters/AccountId" }]
+      requestBody: { $ref: "#/components/requestBodies/Posting" }
+      responses:
+        "201": { $ref: "#/components/responses/Posted" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/RuleViolation" }
+
+  /v1/current-account-facility-fulfillment-arrangement/{accountId}/payments:
+    get:
+      operationId: listTransactions
+      summary: Transaction history (running balance per posting)
+      parameters: [{ $ref: "#/components/parameters/AccountId" }]
       responses:
         "200":
-          description: Control applied
+          description: Postings, oldest first
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ControlRecord"
-        "400":
-          description: Unknown control action
-        "404":
-          description: Unknown control record id
+                type: array
+                items: { $ref: "#/components/schemas/Transaction" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /v1/current-account-facility-fulfillment-arrangement/{accountId}/balance:
+    get:
+      operationId: getBalance
+      summary: Balance + available (balance plus undrawn overdraft)
+      parameters: [{ $ref: "#/components/parameters/AccountId" }]
+      responses:
+        "200": { description: Balance view }
+        "404": { $ref: "#/components/responses/NotFound" }
 
 components:
   parameters:
-    CrId:
-      name: crId
+    AccountId:
+      name: accountId
       in: path
       required: true
-      schema:
-        type: string
-      description: Control record identifier (CR-…)
+      schema: { type: string }
+
+  requestBodies:
+    Posting:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [amountMinor]
+            properties:
+              amountMinor: { type: integer, format: int64, minimum: 1 }
+              reference: { type: string }
+
+  responses:
+    Posted:
+      description: Transaction posted
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Transaction" }
+    NotFound:
+      description: Unknown account
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    RuleViolation:
+      description: Business rule forbids this (KYC pending, blocked, overdraft, non-zero close…)
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    Invalid:
+      description: Bad input
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
 
   schemas:
-    ServiceDomainInfo:
+    Account:
       type: object
       properties:
-        serviceDomain: { type: string, example: "Current Account" }
-        businessArea: { type: string, example: "Operations and Execution" }
-        businessDomain: { type: string, example: "Account Management" }
-        functionalPattern: { type: string, example: "Fulfill" }
-        assetType: { type: string, example: "Current Account Facility" }
-        controlRecord: { type: string, example: "Current Account Facility Fulfillment Arrangement" }
-        version: { type: string }
-        phase: { type: string }
-
-    ControlRecord:
-      type: object
-      properties:
-        controlRecordId: { type: string, example: "CR-7f3a…" }
-        controlRecordType: { type: string, example: "Current Account Facility Fulfillment Arrangement" }
+        accountId: { type: string, example: "CA-…" }
+        customerReference: { type: string }
+        currency: { type: string, example: INR }
+        balanceMinor: { type: integer, format: int64 }
+        overdraftLimitMinor: { type: integer, format: int64 }
+        availableMinor: { type: integer, format: int64 }
         status:
           type: string
-          enum: [INITIATED, ACTIVE, SUSPENDED, TERMINATED]
-        createdAt: { type: string, format: date-time }
+          enum: [PENDING_KYC, ACTIVE, BLOCKED, REJECTED, CLOSED]
+        openedAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
-        properties:
-          $ref: "#/components/schemas/Properties"
 
-    Properties:
+    Transaction:
       type: object
-      additionalProperties: true
-      description: Free-form domain properties (Phase 2 replaces with the real per-domain schema)
-
-    ControlAction:
-      type: object
-      required: [action]
       properties:
-        action:
-          type: string
-          enum: [suspend, resume, terminate]
+        transactionId: { type: string }
+        accountId: { type: string }
+        type: { type: string, enum: [DEPOSIT, WITHDRAWAL, FEE, CHEQUE_CREDIT] }
+        amountMinor: { type: integer, format: int64, description: "signed: credits +, debits -" }
+        balanceAfterMinor: { type: integer, format: int64 }
+        reference: { type: string }
+        postedAt: { type: string, format: date-time }
+
+    Error:
+      type: object
+      properties:
+        code: { type: string, example: OVERDRAFT_EXCEEDED }
+        message: { type: string }

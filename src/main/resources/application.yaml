@@ -14,7 +14,7 @@ management:
   endpoint:
     health:
       probes:
-        enabled: true   # /actuator/health/liveness + /readiness for K8s probes
+        enabled: true
   info:
     env:
       enabled: true
@@ -27,6 +27,14 @@ info:
     functionalPattern: "Fulfill"
     assetType: "Current Account Facility"
     controlRecord: "Current Account Facility Fulfillment Arrangement"
+    phase: "2a-deep"
+
+bian:
+  kyc:
+    # Phase 2a: accounts auto-approve at opening so flows work end-to-end
+    # before the KYC choreography is live. Flip to false once sd-know-your-customer
+    # consumes kyc.check.requested and answers via PUT .../kyc-result (or Kafka).
+    auto-approve: true
 
 resilience4j:
   circuitbreaker:

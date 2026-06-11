@@ -1,34 +1,33 @@
 package com.bank.bian.currentaccount.api;
 
-import com.bank.bian.currentaccount.model.ControlRecord;
-import com.bank.bian.currentaccount.service.ControlRecordStore;
-import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import com.bank.bian.currentaccount.domain.Account;
+import com.bank.bian.currentaccount.domain.AccountTransaction;
+import com.bank.bian.currentaccount.domain.CurrentAccountService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 
 /**
- * BIAN semantic API for the "Current Account" service domain.
+ * BIAN semantic API for "Current Account" — Phase 2a, real domain.
+ * Control record: Current Account Facility Fulfillment Arrangement.
+ * The "payments" sub-resource is the BIAN Payments behavior qualifier.
  *
- * Endpoints follow the BIAN action-term style:
- *   GET  /v1/service-domain                          → who am I (SD metadata)
- *   POST /v1/current-account-facility-fulfillment-arrangement/initiate                    → Initiate a control record
- *   GET  /v1/current-account-facility-fulfillment-arrangement                             → Retrieve (list)
- *   GET  /v1/current-account-facility-fulfillment-arrangement/{crId}/retrieve             → Retrieve (single)
- *   PUT  /v1/current-account-facility-fulfillment-arrangement/{crId}/update               → Update
- *   PUT  /v1/current-account-facility-fulfillment-arrangement/{crId}/control              → Control (suspend|resume|terminate)
+ * Contract: api/openapi.yaml (owned by this repo).
  */
 @RestController
 @RequestMapping("/v1")
 public class ServiceDomainController {
 
-    private final ControlRecordStore store;
+    static final String CR = "current-account-facility-fulfillment-arrangement";
 
-    public ServiceDomainController(ControlRecordStore store) {
-        this.store = store;
+    private final CurrentAccountService service;
+
+    public ServiceDomainController(CurrentAccountService service) {
+        this.service = service;
     }
 
     @GetMapping("/service-domain")
@@ -40,46 +39,85 @@ public class ServiceDomainController {
                 "functionalPattern", "Fulfill",
                 "assetType", "Current Account Facility",
                 "controlRecord", "Current Account Facility Fulfillment Arrangement",
-                "version", "0.1.0",
-                "phase", "1-shallow"
+                "version", "0.2.0",
+                "phase", "2a-deep"
         );
     }
 
-    @PostMapping("/current-account-facility-fulfillment-arrangement/initiate")
-    @CircuitBreaker(name = "serviceDomain")
-    public ResponseEntity<ControlRecord> initiate(@RequestBody(required = false) Map<String, Object> properties) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(store.initiate(properties));
+    // ── control record lifecycle ─────────────────────────────────────────────
+
+    public record OpenRequest(String customerReference, String currency, Long overdraftLimitMinor) {}
+
+    @PostMapping("/" + CR + "/initiate")
+    public ResponseEntity<Account> initiate(@RequestBody OpenRequest req) {
+        Account account = service.open(
+                req.customerReference(),
+                req.currency() == null ? "INR" : req.currency(),
+                req.overdraftLimitMinor() == null ? 0L : req.overdraftLimitMinor());
+        return ResponseEntity.status(HttpStatus.CREATED).body(account);
     }
 
-    @GetMapping("/current-account-facility-fulfillment-arrangement")
-    public Collection<ControlRecord> list() {
-        return store.list();
+    @GetMapping("/" + CR)
+    public Collection<Account> list() {
+        return service.list();
     }
 
-    @GetMapping("/current-account-facility-fulfillment-arrangement/{crId}/retrieve")
-    public ResponseEntity<ControlRecord> retrieve(@PathVariable String crId) {
-        return store.retrieve(crId)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+    @GetMapping("/" + CR + "/{accountId}/retrieve")
+    public Account retrieve(@PathVariable String accountId) {
+        return service.retrieve(accountId);
     }
 
-    @PutMapping("/current-account-facility-fulfillment-arrangement/{crId}/update")
-    public ResponseEntity<ControlRecord> update(@PathVariable String crId,
-                                                @RequestBody Map<String, Object> properties) {
-        return store.update(crId, properties)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+    @PutMapping("/" + CR + "/{accountId}/control")
+    public Account control(@PathVariable String accountId, @RequestBody Map<String, String> body) {
+        return service.control(accountId, body.get("action"));
     }
 
-    @PutMapping("/current-account-facility-fulfillment-arrangement/{crId}/control")
-    public ResponseEntity<?> control(@PathVariable String crId,
-                                     @RequestBody Map<String, String> body) {
-        try {
-            return store.control(crId, body.get("action"))
-                    .<ResponseEntity<?>>map(ResponseEntity::ok)
-                    .orElse(ResponseEntity.notFound().build());
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
+    @PutMapping("/" + CR + "/{accountId}/kyc-result")
+    public Account kycResult(@PathVariable String accountId, @RequestBody Map<String, Object> body) {
+        boolean approved = Boolean.TRUE.equals(body.get("approved"));
+        return service.applyKycResult(accountId, approved, (String) body.get("reason"));
+    }
+
+    // ── Payments behavior qualifier ──────────────────────────────────────────
+
+    public record PostingRequest(long amountMinor, String reference) {}
+
+    @PostMapping("/" + CR + "/{accountId}/payments/deposit")
+    public ResponseEntity<AccountTransaction> deposit(@PathVariable String accountId,
+                                                      @RequestBody PostingRequest req) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(service.deposit(accountId, req.amountMinor(), req.reference()));
+    }
+
+    @PostMapping("/" + CR + "/{accountId}/payments/withdraw")
+    public ResponseEntity<AccountTransaction> withdraw(@PathVariable String accountId,
+                                                       @RequestBody PostingRequest req) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(service.withdraw(accountId, req.amountMinor(), req.reference()));
+    }
+
+    /** Inbound credit from Cheque Processing (HTTP now; Kafka consumer later). */
+    @PostMapping("/" + CR + "/{accountId}/payments/cheque-credit")
+    public ResponseEntity<AccountTransaction> chequeCredit(@PathVariable String accountId,
+                                                           @RequestBody PostingRequest req) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(service.chequeCredit(accountId, req.amountMinor(), req.reference()));
+    }
+
+    @GetMapping("/" + CR + "/{accountId}/payments")
+    public List<AccountTransaction> transactions(@PathVariable String accountId) {
+        return service.transactions(accountId);
+    }
+
+    @GetMapping("/" + CR + "/{accountId}/balance")
+    public Map<String, Object> balance(@PathVariable String accountId) {
+        Account a = service.retrieve(accountId);
+        return Map.of(
+                "accountId", a.getAccountId(),
+                "currency", a.getCurrency(),
+                "balanceMinor", a.getBalanceMinor(),
+                "availableMinor", a.availableMinor(),
+                "overdraftLimitMinor", a.getOverdraftLimitMinor(),
+                "status", a.getStatus().name());
     }
 }

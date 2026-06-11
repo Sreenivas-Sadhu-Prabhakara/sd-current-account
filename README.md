@@ -1,55 +1,45 @@
 # Current Account
 
-BIAN Service Domain microservice — part of the [bian-platform](../../bian-platform/) landscape.
+BIAN Service Domain microservice — **Phase 2a DEEP build** (graduated from the golden template; the generator no longer touches this repo — see `.bian-graduated`).
 
 | | |
 |---|---|
 | **Business Area** | Operations and Execution |
 | **Business Domain** | Account Management |
 | **Functional Pattern** | Fulfill |
-| **Asset Type** | Current Account Facility |
 | **Control Record** | Current Account Facility Fulfillment Arrangement |
 | **K8s Namespace** | `bian-operations` |
-| **Stack** | Java 21 · Spring Boot 3 · Resilience4j · Cilium mesh |
+| **Stack** | Java 21 · Spring Boot 3 · Cilium mesh |
 
-> ⚠️ **Phase 1 (shallow):** real REST API over an in-memory store. Phase 2 replaces the store with per-domain persistence and real domain logic. This repo was stamped from `bian-platform/generator` — regenerate rather than hand-editing boilerplate.
+## Business rules implemented
 
-## BIAN Semantic API
+- **KYC gating** — accounts open `PENDING_KYC`, emit `kyc.check.requested`, and accept **no transactions** until approved. `bian.kyc.auto-approve=true` (Phase 2a default) approves instantly and records the auto-approval event; flip to `false` when the KYC choreography is live. Rejection → `REJECTED` (terminal).
+- **Overdraft** — withdrawals may take the balance negative down to exactly `-overdraftLimitMinor`; one minor unit further is rejected (`409 OVERDRAFT_EXCEEDED`).
+- **Blocking** — `BLOCKED` accounts reject debits but accept credits (standard freeze semantics).
+- **Closing** — requires balance exactly 0. `CLOSED` is terminal.
+- **Audit** — every posting appends an immutable transaction with running balance and emits `transaction.posted` (the **fraud flagship feed**).
+- Money is `long` minor units everywhere. No floats, ever.
 
-| Method | Path | BIAN action term |
-|---|---|---|
-| GET | `/v1/service-domain` | — (SD metadata) |
-| POST | `/v1/current-account-facility-fulfillment-arrangement/initiate` | Initiate |
-| GET | `/v1/current-account-facility-fulfillment-arrangement` | Retrieve (list) |
-| GET | `/v1/current-account-facility-fulfillment-arrangement/{crId}/retrieve` | Retrieve |
-| PUT | `/v1/current-account-facility-fulfillment-arrangement/{crId}/update` | Update |
-| PUT | `/v1/current-account-facility-fulfillment-arrangement/{crId}/control` | Control — body `{"action": "suspend"\|"resume"\|"terminate"}` |
+## API & contracts (owned by this repo)
 
-OpenAPI UI: `/swagger-ui.html` · Health: `/actuator/health` · Metrics: `/actuator/prometheus`
-
-**API contract:** [`api/openapi.yaml`](api/openapi.yaml) — owned by **this repo** (contract-per-repo; no central contracts repo). The runtime spec at `/v3/api-docs` must stay compatible with it; Phase 2 adds contract tests that enforce this.
-
-## Run locally
+- REST contract: [`api/openapi.yaml`](api/openapi.yaml) · Event contract: [`api/events.yaml`](api/events.yaml)
+- Base path: `/v1/current-account-facility-fulfillment-arrangement`
+- Lifecycle: `POST /initiate` · `GET /{id}/retrieve` · `PUT /{id}/control` (`block|unblock|terminate`) · `PUT /{id}/kyc-result`
+- Payments BQ: `POST /{id}/payments/deposit|withdraw|cheque-credit` · `GET /{id}/payments` · `GET /{id}/balance`
 
 ```bash
 mvn spring-boot:run
-curl localhost:8080/v1/service-domain
-
-# lifecycle smoke test
-curl -X POST localhost:8080/v1/current-account-facility-fulfillment-arrangement/initiate -H 'content-type: application/json' -d '{"note":"hello"}'
+CR=/v1/current-account-facility-fulfillment-arrangement
+ID=$(curl -s -X POST localhost:8080$CR/initiate -H 'content-type: application/json' \
+     -d '{"customerReference":"C-1","currency":"INR","overdraftLimitMinor":10000}' | jq -r .accountId)
+curl -s -X POST localhost:8080$CR/$ID/payments/deposit -H 'content-type: application/json' -d '{"amountMinor":50000,"reference":"salary"}'
+curl -s localhost:8080$CR/$ID/balance
 ```
 
-## Build & containerize
+## Persistence
 
-```bash
-mvn -B verify
-docker build -t bian/sd-current-account:0.1.0 .
-```
+In-memory (port/adapter). **Postgres is ready to hydrate, deliberately not wired**: DDL in [`db/schema.sql`](db/schema.sql) (+ `db/seed.sql`), provisioning via `bian-platform/platform-infra/postgres/hydrate.sh` — run only on explicit go-ahead. The schema enforces the overdraft invariant at the database level too.
 
-## Deploy (Helm → K8s with Cilium mesh)
+## Tests
 
-```bash
-helm upgrade --install sd-current-account ./helm -n bian-operations
-```
-
-Exposed through the platform Gateway at path prefix `/sd-current-account` (Cilium Gateway API). Mesh policy (`CiliumNetworkPolicy`) allows: gateway ingress, same-area peers, Prometheus — everything else denied.
+`mvn verify` — unit tests for every rule above (`CurrentAccountServiceTest`) + a boot/API journey test (`ApplicationTests`).

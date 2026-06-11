@@ -1,0 +1,36 @@
+# Event contract — owned by THIS repo. Topic catalog: bian-platform/platform-infra/kafka/topics.yaml
+# Phase 2a transport: logging adapter (events visible in pod logs, wire-identical shape).
+# Kafka activates when the platform installs Strimzi.
+service: sd-current-account
+publishes:
+  - topic: bian.accounts.current-account
+    events:
+      - type: account.opened
+        payload: [accountId, currency, overdraftLimitMinor, status]
+      - type: account.blocked
+        payload: [accountId]
+      - type: account.active        # after unblock
+        payload: [accountId]
+      - type: account.closed
+        payload: [accountId]
+      - type: transaction.posted    # PRIMARY FRAUD FEED (flagship flow)
+        payload: [transactionId, accountId, type, amountMinor, balanceAfterMinor, currency]
+  - topic: bian.kyc.check
+    events:
+      - type: kyc.check.requested   # FLAGSHIP KYC FLOW — consumed by sd-know-your-customer
+        payload: [accountId, customerReference]
+      - type: kyc.assessment.auto-approved   # Phase 2a only, while auto-approve=true
+        payload: [accountId, note]
+      - type: kyc.assessment.approved
+        payload: [accountId, reason]
+      - type: kyc.assessment.rejected
+        payload: [accountId, reason]
+consumes:
+  - topic: bian.cheques.lifecycle
+    events:
+      - type: cheque.cleared        # → POST .../payments/cheque-credit (HTTP today, consumer later)
+        from: sd-cheque-processing
+  - topic: bian.kyc.assessment
+    events:
+      - type: kyc.assessment.completed   # → PUT .../{id}/kyc-result (when KYC SD goes deep)
+        from: sd-know-your-customer
