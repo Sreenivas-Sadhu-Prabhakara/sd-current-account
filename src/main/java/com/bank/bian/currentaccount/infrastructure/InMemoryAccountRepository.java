@@ -3,6 +3,7 @@ package com.bank.bian.currentaccount.infrastructure;
 import com.bank.bian.currentaccount.domain.Account;
 import com.bank.bian.currentaccount.domain.AccountRepository;
 import com.bank.bian.currentaccount.domain.AccountTransaction;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Repository;
 
 import java.util.Collection;
@@ -13,11 +14,12 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
- * Phase 2a adapter. Atomicity across balance update + transaction append is
- * handled by the service layer's per-account locking; once the Postgres
- * adapter lands this responsibility moves to database transactions.
+ * Default adapter (any profile except 'postgres'). Atomicity across balance
+ * update + transaction append is the service layer's per-account locking;
+ * under the 'postgres' profile JdbcAccountRepository takes over.
  */
 @Repository
+@Profile("!postgres")
 public class InMemoryAccountRepository implements AccountRepository {
 
     private final Map<String, Account> accounts = new ConcurrentHashMap<>();

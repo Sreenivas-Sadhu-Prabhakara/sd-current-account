@@ -37,3 +37,7 @@ route:
 networkPolicy:
   enabled: true
   monitoringNamespace: monitoring
+
+# Runtime wiring (Phase 2d gates): activate Spring profiles / inject env.
+springProfiles: ""
+extraEnv: []

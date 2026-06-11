@@ -1,6 +1,12 @@
 spring:
   application:
     name: sd-current-account
+  # Datasource is defined but LAZY — no connection is made unless the
+  # 'postgres' profile activates JdbcAccountRepository. Default stays in-memory.
+  datasource:
+    url: ${BIAN_DB_URL:jdbc:postgresql://localhost:5432/currentaccount}
+    username: ${BIAN_DB_USER:currentaccount}
+    password: ${BIAN_DB_PASSWORD:currentaccount-localdev}
 
 server:
   port: 8080
@@ -49,3 +55,15 @@ springdoc:
     path: /v3/api-docs
   swagger-ui:
     path: /swagger-ui.html
+
+---
+# Profile 'kafka': real event transport (gate 2). Without it, events log.
+spring:
+  config:
+    activate:
+      on-profile: kafka
+  kafka:
+    bootstrap-servers: ${BIAN_KAFKA_BOOTSTRAP:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
