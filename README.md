@@ -27,6 +27,8 @@ BIAN Service Domain microservice — part of the [bian-platform](../../bian-plat
 
 OpenAPI UI: `/swagger-ui.html` · Health: `/actuator/health` · Metrics: `/actuator/prometheus`
 
+**API contract:** [`api/openapi.yaml`](api/openapi.yaml) — owned by **this repo** (contract-per-repo; no central contracts repo). The runtime spec at `/v3/api-docs` must stay compatible with it; Phase 2 adds contract tests that enforce this.
+
 ## Run locally
 
 ```bash
