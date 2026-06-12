@@ -44,20 +44,28 @@ public class CurrentAccountService {
     private final AccountRepository repository;
     private final EventPublisher events;
     private final boolean kycAutoApprove;
+    private final KycGateway kycGateway;
     private final Clock clock;
     private final Map<String, ReentrantLock> locks = new ConcurrentHashMap<>();
 
     @Autowired  // disambiguates from the Clock-injected test constructor below
     public CurrentAccountService(AccountRepository repository,
                                  EventPublisher events,
+                                 KycGateway kycGateway,
                                  @Value("${bian.kyc.auto-approve:true}") boolean kycAutoApprove) {
-        this(repository, events, kycAutoApprove, Clock.systemUTC());
+        this(repository, events, kycGateway, kycAutoApprove, Clock.systemUTC());
     }
 
     public CurrentAccountService(AccountRepository repository, EventPublisher events,
                                  boolean kycAutoApprove, Clock clock) {
+        this(repository, events, KycGateway.NONE, kycAutoApprove, clock);
+    }
+
+    public CurrentAccountService(AccountRepository repository, EventPublisher events,
+                                 KycGateway kycGateway, boolean kycAutoApprove, Clock clock) {
         this.repository = repository;
         this.events = events;
+        this.kycGateway = kycGateway;
         this.kycAutoApprove = kycAutoApprove;
         this.clock = clock;
     }
@@ -83,7 +91,15 @@ public class CurrentAccountService {
                 "accountId", account.getAccountId(),
                 "customerReference", customerReference)));
 
-        if (kycAutoApprove) {
+        if (kycGateway.isActive()) {
+            // 2d-ii: a real KYC service is wired — dispatch the check and stay
+            // PENDING_KYC until its verdict lands on the kyc-result callback.
+            // Auto-approve is intentionally ignored in this mode.
+            boolean delivered = kycGateway.requestCheck(account.getAccountId(), customerReference);
+            events.publish(DomainEvent.of(TOPIC_KYC,
+                    delivered ? "kyc.check.dispatched" : "kyc.check.dispatch-failed",
+                    Map.of("accountId", account.getAccountId())));
+        } else if (kycAutoApprove) {
             account.setStatus(Account.Status.ACTIVE);
             account.setUpdatedAt(clock.instant());
             repository.save(account);

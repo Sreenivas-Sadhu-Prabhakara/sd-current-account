@@ -35,6 +35,47 @@ class CurrentAccountServiceTest {
     }
 
     @Nested
+    class KycLoopClosure {
+        /** 2d-ii: with a real KYC gateway wired, auto-approve is ignored. */
+        @Test
+        void activeGatewayDispatchesCheckAndKeepsAccountPending() {
+            var dispatched = new java.util.ArrayList<String>();
+            KycGateway gateway = new KycGateway() {
+                @Override public boolean isActive() { return true; }
+                @Override public boolean requestCheck(String accountId, String customerReference) {
+                    dispatched.add(accountId + ":" + customerReference);
+                    return true;
+                }
+            };
+            var svc = new CurrentAccountService(new InMemoryAccountRepository(), events,
+                    gateway, /* autoApprove (must be ignored) */ true, Clock.systemUTC());
+
+            Account a = svc.open("C-LOOP", "INR", 0);
+
+            assertThat(a.getStatus()).isEqualTo(Account.Status.PENDING_KYC);
+            assertThat(dispatched).containsExactly(a.getAccountId() + ":C-LOOP");
+            assertThat(events.types()).containsExactly(
+                    "kyc.check.requested", "kyc.check.dispatched", "account.opened");
+            // verdict arrives on the callback — exactly what KYC's HttpKycResultCallback sends
+            svc.applyKycResult(a.getAccountId(), true, "CLEAN");
+            assertThat(svc.retrieve(a.getAccountId()).getStatus()).isEqualTo(Account.Status.ACTIVE);
+        }
+
+        @Test
+        void gatewayDeliveryFailureLeavesAccountPendingNotBroken() {
+            KycGateway flaky = new KycGateway() {
+                @Override public boolean isActive() { return true; }
+                @Override public boolean requestCheck(String a, String c) { return false; }
+            };
+            var svc = new CurrentAccountService(new InMemoryAccountRepository(), events,
+                    flaky, true, Clock.systemUTC());
+            Account a = svc.open("C-FLAKY", "INR", 0);
+            assertThat(a.getStatus()).isEqualTo(Account.Status.PENDING_KYC);
+            assertThat(events.types()).contains("kyc.check.dispatch-failed");
+        }
+    }
+
+    @Nested
     class Opening {
         @Test
         void autoApproveOpensActiveAndEmitsKycEvents() {
