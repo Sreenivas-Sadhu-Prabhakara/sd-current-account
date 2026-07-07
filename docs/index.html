@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Current Account — BIAN Operations and Execution service domain</title>
+<meta name="description" content="Current Account: a BIAN Operations and Execution service domain (Fulfill pattern) for Account Management. Spring Boot microservice on a Kubernetes Cilium mesh — part of a 162-domain core-banking landscape."/>
+<meta name="keywords" content="BIAN, banking service domain, core banking, Current Account, Operations and Execution, Current Account Facility, Fulfill pattern, Spring Boot, microservices, Kubernetes, Cilium, sd-current-account"/>
+<meta name="author" content="Sreenivas Sadhu Prabhakara"/>
+<meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1"/>
+<meta name="theme-color" content="#0c1220"/>
+<link rel="canonical" href="https://sreenivas-sadhu-prabhakara.github.io/sd-current-account/"/>
+<meta property="og:site_name" content="BIAN Platform"/>
+<meta property="og:title" content="Current Account — BIAN Operations and Execution"/>
+<meta property="og:description" content="A BIAN service domain in Operations and Execution. It applies the Fulfill functional pattern to the Current Account Facility, with the Current Account Facility Fulfillment Arrangement as its control record — one independent Spring Boot microservice on the platform's Cilium eBPF mesh."/>
+<meta property="og:type" content="website"/>
+<meta property="og:url" content="https://sreenivas-sadhu-prabhakara.github.io/sd-current-account/"/>
+<meta property="og:locale" content="en"/>
+<meta property="og:image" content="https://sreenivas-sadhu-prabhakara.github.io/sd-current-account/assets/og.png"/>
+<meta property="og:image:width" content="1200"/>
+<meta property="og:image:height" content="630"/>
+<meta property="og:image:alt" content="Current Account — a BIAN Operations and Execution service domain."/>
+<meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:title" content="Current Account — BIAN Operations and Execution"/>
+<meta name="twitter:description" content="A BIAN service domain in Operations and Execution. It applies the Fulfill functional pattern to the Current Account Facility, with the Current Account Facility Fulfillment Arrangement as its control record — one independent Spring Boot microservice on the platform's Cilium eBPF mesh."/>
+<meta name="twitter:image" content="https://sreenivas-sadhu-prabhakara.github.io/sd-current-account/assets/og.png"/>
+<link rel="icon" type="image/svg+xml" href="favicon.svg"/>
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png"/>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "SoftwareSourceCode",
+      "@id": "https://sreenivas-sadhu-prabhakara.github.io/sd-current-account/#software",
+      "name": "sd-current-account",
+      "description": "Current Account: a BIAN Operations and Execution service domain (Fulfill pattern) for Account Management. Spring Boot microservice on a Kubernetes Cilium mesh — part of a 162-domain core-banking landscape.",
+      "url": "https://sreenivas-sadhu-prabhakara.github.io/sd-current-account/",
+      "codeRepository": "https://github.com/Sreenivas-Sadhu-Prabhakara/sd-current-account",
+      "programmingLanguage": "Java",
+      "runtimePlatform": "Spring Boot",
+      "author": {
+        "@type": "Person",
+        "name": "Sreenivas Sadhu Prabhakara",
+        "url": "https://github.com/Sreenivas-Sadhu-Prabhakara"
+      },
+      "isPartOf": {
+        "@type": "SoftwareApplication",
+        "name": "BIAN Platform",
+        "url": "https://sreenivas-sadhu-prabhakara.github.io/bian-platform/"
+      },
+      "about": [
+        {
+          "@type": "Thing",
+          "name": "BIAN"
+        },
+        {
+          "@type": "Thing",
+          "name": "Current Account"
+        },
+        {
+          "@type": "Thing",
+          "name": "Core banking"
+        }
+      ]
+    },
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "BIAN Platform",
+          "item": "https://sreenivas-sadhu-prabhakara.github.io/bian-platform/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Master Catalog",
+          "item": "https://sreenivas-sadhu-prabhakara.github.io/bian-platform/catalog.html"
+        },
+        {
+          "@type": "ListItem",
+          "position": 3,
+          "name": "Current Account",
+          "item": "https://sreenivas-sadhu-prabhakara.github.io/sd-current-account/"
+        }
+      ]
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "What is the BIAN “Fulfill” functional pattern?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "A Fulfill service domain runs the full lifecycle of a product or service arrangement — origination, servicing and closure. Current Account applies it to the Current Account Facility."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What is a BIAN service domain?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "BIAN (the Banking Industry Architecture Network) decomposes a bank into independent service domains, each owning exactly one business capability. Current Account is the service domain for Account Management; it manages the Current Account Facility Fulfillment Arrangement and exposes it through standard BIAN action terms."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What business area does Current Account belong to?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Current Account sits in the Operations and Execution business area — the operational core that executes payments, positions, settlements and transactions. It runs in the bian-operations namespace as one independent Spring Boot microservice."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is Current Account production-ready?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "It is an educational reference implementation: a real BIAN REST API over an in-memory store, ready to be filled with domain logic. It is not a live bank and is not affiliated with BIAN."
+          }
+        }
+      ]
+    }
+  ]
+}
+</script>
+<style>
+:root{--bg:#0c1220;--bg2:#101a2e;--panel:#16223a;--panel2:#1c2b48;--line:#27375a;--ink:#e9edf5;--dim:#9aa7c0;--faint:#66738f;--gold:#d9a93d;--golds:#f0c869;--green:#3fbf8f;--blue:#5b8dd9;--sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;--mono:ui-monospace,"SF Mono",Menlo,monospace;--maxw:960px}
+*{box-sizing:border-box}html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:16.5px;line-height:1.6;-webkit-font-smoothing:antialiased;background-image:radial-gradient(120% 60% at 50% -10%,#13203a 0%,#0c1220 55%)}
+a{color:var(--golds);text-decoration:none}a:hover{text-decoration:underline}
+code{font-family:var(--mono);font-size:.85em;background:var(--panel);border:1px solid var(--line);border-radius:5px;padding:.1em .4em;color:var(--golds)}
+.wrap{max-width:var(--maxw);margin:0 auto;padding:0 clamp(1rem,4vw,2rem)}
+.top{position:sticky;top:0;z-index:9;background:rgba(12,18,32,.82);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:.7rem clamp(1rem,4vw,2rem)}
+.brand{font-family:var(--mono);font-size:.9rem;letter-spacing:.06em;color:var(--ink)}.brand .t{color:var(--gold)}
+.top .l a{font-family:var(--mono);color:var(--dim);font-size:.76rem;margin-left:1.1rem}
+.hero{max-width:var(--maxw);margin:0 auto;text-align:center;padding:clamp(2.6rem,7vw,4.4rem) 1rem 2.4rem}
+.eyebrow{font-family:var(--mono);font-size:.74rem;letter-spacing:.18em;color:var(--gold);text-transform:uppercase}
+h1{font-weight:800;font-size:clamp(2.3rem,6vw,3.8rem);line-height:1.05;letter-spacing:-1px;margin:1rem 0 .5rem}
+.repo{font-family:var(--mono);font-size:.8rem;color:var(--faint)}
+.deep{display:inline-block;font-family:var(--mono);font-size:.64rem;letter-spacing:.08em;color:#0c1220;background:var(--gold);border-radius:4px;padding:.18rem .5rem;margin-top:.8rem}
+.sub{max-width:62ch;margin:1.2rem auto 1.6rem;color:var(--dim)}
+.cta a{display:inline-block;font-family:var(--mono);font-size:.82rem;border:1px solid var(--line);color:var(--ink);border-radius:7px;padding:.6rem 1.1rem;margin:0 .3rem}
+.cta a.fill{background:var(--gold);color:#0c1220;border-color:var(--gold);font-weight:600}
+.strip{display:flex;flex-wrap:wrap;gap:1px;background:var(--line);border:1px solid var(--line);border-radius:10px;overflow:hidden;max-width:var(--maxw);margin:1.6rem auto 0}
+.strip div{background:var(--panel);padding:.8rem 1rem;flex:1 1 170px}
+.strip b{display:block;font-family:var(--mono);font-size:.6rem;letter-spacing:.08em;color:var(--faint);text-transform:uppercase;margin-bottom:.25rem}
+.strip span{font-size:1rem}
+section{max-width:var(--maxw);margin:0 auto;padding:clamp(2rem,5vw,3.2rem) clamp(1rem,4vw,2rem);border-top:1px solid var(--line)}
+h2{font-size:1.8rem;letter-spacing:-.5px;margin:0 0 .3rem}
+h2 .no{font-family:var(--mono);font-size:.7rem;color:var(--gold);border:1px solid var(--gold);border-radius:6px;padding:.12rem .45rem;vertical-align:middle;margin-right:.55rem}
+.intro{color:var(--dim);max-width:64ch;margin:.4rem 0 1.4rem}
+ul.list{list-style:none;padding:0;margin:0;display:grid;gap:.5rem}
+ul.list li{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--gold);border-radius:7px;padding:.7rem 1rem;color:var(--ink)}
+table{width:100%;border-collapse:collapse;font-size:.88rem;background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+th,td{text-align:left;padding:.6rem .8rem;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--mono);font-size:.66rem;text-transform:uppercase;letter-spacing:.08em;color:var(--faint);background:var(--bg2)}
+.meth{font-family:var(--mono);font-weight:600;color:var(--green);font-size:.8rem}
+pre{background:#070c17;color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:1.1rem 1.2rem;overflow:auto;font-family:var(--mono);font-size:.82rem;line-height:1.7}
+pre .c{color:var(--faint)}
+.faq details{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--gold);border-radius:7px;margin-bottom:.7rem}
+.faq summary{list-style:none;cursor:pointer;position:relative;padding:.9rem 2.4rem .9rem 1rem;font-size:1.1rem;font-weight:600}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary::after{content:"+";position:absolute;right:1rem;top:50%;transform:translateY(-50%);font-family:var(--mono);color:var(--gold);font-size:1.25rem}
+.faq details[open] summary::after{content:"\2013"}
+.faq .a{padding:0 1rem 1rem;color:var(--dim);max-width:72ch}
+.rel{display:flex;flex-wrap:wrap;gap:.6rem}
+.rel a{font-family:var(--mono);font-size:.76rem;background:var(--panel);border:1px solid var(--line);border-radius:7px;padding:.55rem .8rem;color:var(--ink)}
+.foot{max-width:var(--maxw);margin:0 auto;padding:2.4rem 1.2rem 3.4rem;border-top:1px solid var(--line);text-align:center;color:var(--dim);font-size:.84rem}
+.foot-dim{color:var(--faint);font-size:.76rem;margin-top:.5rem;line-height:1.6}
+</style>
+</head>
+<body>
+<header class="top"><a class="brand" href="https://sreenivas-sadhu-prabhakara.github.io/bian-platform/"><span class="t">▚</span> BIAN PLATFORM</a><div class="l"><a href="https://sreenivas-sadhu-prabhakara.github.io/bian-platform/catalog.html">Catalog</a><a href="#run">Run</a><a href="#faq">FAQ</a><a href="https://github.com/Sreenivas-Sadhu-Prabhakara/sd-current-account">Repo ↗</a></div></header>
+
+<section class="hero">
+  <p class="eyebrow">Operations and Execution</p>
+  <h1>Current Account</h1>
+  <p class="repo">sd-current-account · bian-operations</p>
+  
+  <p class="sub">A BIAN service domain in Operations and Execution. It applies the Fulfill functional pattern to the Current Account Facility, with the Current Account Facility Fulfillment Arrangement as its control record — one independent Spring Boot microservice on the platform's Cilium eBPF mesh.</p>
+  <p class="cta"><a class="fill" href="https://github.com/Sreenivas-Sadhu-Prabhakara/sd-current-account">View repository ↗</a><a href="https://sreenivas-sadhu-prabhakara.github.io/bian-platform/">The 162-domain platform ↗</a></p>
+  <div class="strip">
+    <div><b>Business Domain</b><span>Account Management</span></div>
+    <div><b>Functional Pattern</b><span>Fulfill</span></div>
+    <div><b>Asset Type</b><span>Current Account Facility</span></div>
+    <div><b>Control Record</b><span>Current Account Facility Fulfillment Arrangement</span></div>
+  </div>
+</section>
+
+<section>
+  <h2><span class="no">USE</span>What it is used for</h2>
+  <p class="intro">Representative use cases for the Current Account service domain within a BIAN-aligned core-banking landscape.</p>
+  <ul class="list">
+    <li>Open, service, block, and close Current Account Facility records with full posting history</li>
+    <li>Post deposits/withdrawals with balance and overdraft/minimum rules enforced</li>
+    <li>Stream transaction events to fraud monitoring and customer notifications</li>
+    <li>Drive interest accrual/fees and feed the general ledger</li>
+  </ul>
+</section>
+
+<section>
+  <h2><span class="no">API</span>BIAN semantic API</h2>
+  <p class="intro">The control record (<code>Current Account Facility Fulfillment Arrangement</code>) is exposed through uniform BIAN action terms. Java 21 · Spring Boot 3, OpenAPI at <code>/swagger-ui.html</code>, health at <code>/actuator/health</code>.</p>
+  <table><thead><tr><th>Method</th><th>Path</th><th>BIAN action</th></tr></thead><tbody>
+    <tr><td><span class="meth">GET</span></td><td><code>/v1/service-domain</code></td><td>Service metadata</td></tr>
+    <tr><td><span class="meth">POST</span></td><td><code>/v1/current-account-facility-fulfillment-arrangement/initiate</code></td><td>Initiate</td></tr>
+    <tr><td><span class="meth">GET</span></td><td><code>/v1/current-account-facility-fulfillment-arrangement/{crId}/retrieve</code></td><td>Retrieve</td></tr>
+    <tr><td><span class="meth">PUT</span></td><td><code>/v1/current-account-facility-fulfillment-arrangement/{crId}/update</code></td><td>Update</td></tr>
+    <tr><td><span class="meth">PUT</span></td><td><code>/v1/current-account-facility-fulfillment-arrangement/{crId}/control</code></td><td>Control (suspend / resume / terminate)</td></tr>
+  </tbody></table>
+</section>
+
+<section>
+  <h2><span class="no">INT</span>Backend integrations</h2>
+  <p class="intro">The systems and standards a real deployment of Current Account would transact with.</p>
+  <ul class="list">
+    <li>Core ledgers: Thought Machine Vault, Mambu, Temenos, Finacle</li>
+    <li>Statements/comms: Quadient, OpenText Exstream</li>
+    <li>Billing: Zuora, SAP BRIM</li>
+  </ul>
+</section>
+
+<section id="run">
+  <h2><span class="no">RUN</span>Run it yourself</h2>
+  <p class="intro">Each service domain is its own standalone Spring Boot repository — clone and run in seconds, or deploy onto Kubernetes with the bundled Helm chart behind the Cilium mesh.</p>
+<pre><span class="c"># run this service domain standalone</span>
+git clone https://github.com/Sreenivas-Sadhu-Prabhakara/sd-current-account
+mvn -f sd-current-account spring-boot:run
+curl localhost:8080/v1/service-domain
+
+<span class="c"># or deploy onto Kubernetes (Cilium eBPF mesh)</span>
+helm upgrade --install sd-current-account ./helm -n bian-operations</pre>
+</section>
+
+<section id="faq">
+  <h2><span class="no">FAQ</span>Questions</h2>
+  <div class="faq">
+  <details><summary>What is the BIAN “Fulfill” functional pattern?</summary><div class="a">A Fulfill service domain runs the full lifecycle of a product or service arrangement — origination, servicing and closure. Current Account applies it to the Current Account Facility.</div></details>
+  <details><summary>What is a BIAN service domain?</summary><div class="a">BIAN (the Banking Industry Architecture Network) decomposes a bank into independent service domains, each owning exactly one business capability. Current Account is the service domain for Account Management; it manages the Current Account Facility Fulfillment Arrangement and exposes it through standard BIAN action terms.</div></details>
+  <details><summary>What business area does Current Account belong to?</summary><div class="a">Current Account sits in the Operations and Execution business area — the operational core that executes payments, positions, settlements and transactions. It runs in the bian-operations namespace as one independent Spring Boot microservice.</div></details>
+  <details><summary>Is Current Account production-ready?</summary><div class="a">It is an educational reference implementation: a real BIAN REST API over an in-memory store, ready to be filled with domain logic. It is not a live bank and is not affiliated with BIAN.</div></details>
+  </div>
+</section>
+
+<section>
+  <h2><span class="no">SEE</span>In the landscape</h2>
+  <p class="intro">Current Account is one of 162 BIAN service domains on the platform. Explore the rest:</p>
+  <div class="rel">
+    <a href="https://sreenivas-sadhu-prabhakara.github.io/bian-platform/">▚ Platform overview</a>
+    <a href="https://sreenivas-sadhu-prabhakara.github.io/bian-platform/catalog.html">The Master Catalog (162 domains)</a>
+    <a href="https://github.com/Sreenivas-Sadhu-Prabhakara/sd-current-account">This repository ↗</a>
+  </div>
+</section>
+
+<footer class="foot">
+  <p>▚ BIAN Platform · sd-current-account — an educational, BIAN-aligned core-banking reference landscape (Spring Boot · Kubernetes · Cilium eBPF mesh).</p>
+  <p class="foot-dim">Independent educational reference implementation. Not production software and not affiliated with, endorsed by, or certified by BIAN (Banking Industry Architecture Network).</p>
+</footer>
+</body>
+</html>
